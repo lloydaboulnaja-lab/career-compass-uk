@@ -56,18 +56,6 @@ export const savedJobs = {
     ),
 };
 
-export interface DigestEntry {
-  id: string;
-  sentAt: string;
-  subject: string;
-  jobs: JobLead[];
-}
-
-export const digestStore = {
-  get: () => read<DigestEntry[]>(DIGEST_KEY, []),
-  add: (entry: DigestEntry) => write(DIGEST_KEY, [entry, ...read<DigestEntry[]>(DIGEST_KEY, [])].slice(0, 20)),
-  clear: () => write(DIGEST_KEY, []),
-};
 
 export interface TailoredRecord extends TailorResult {
   id: string;
