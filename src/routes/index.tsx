@@ -219,55 +219,8 @@ function Feed() {
           </section>
         )}
 
-        <section className="mt-14">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 font-display text-2xl font-bold">
-              <Inbox className="size-5" /> Digest inbox
-            </h2>
-            {digest.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => digestStore.clear()}>
-                Clear
-              </Button>
-            )}
-          </div>
-          <div className="surface-card mt-4 flex items-start gap-3 border-dashed p-4 text-sm text-muted-foreground">
-            <Mail className="mt-0.5 size-4 shrink-0" />
-            <p>
-              Email sending needs a domain of your own. Until you have one, every bot run lands here
-              as a digest — same content, just in the app.
-            </p>
-          </div>
-          <div className="mt-4 space-y-3">
-            {digest.map((entry) => (
-              <details key={entry.id} className="surface-card p-4">
-                <summary className="cursor-pointer font-medium">
-                  {entry.subject}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    {new Date(entry.sentAt).toLocaleString("en-GB")}
-                  </span>
-                </summary>
-                <ul className="mt-3 space-y-2 text-sm">
-                  {entry.jobs.map((job) => (
-                    <li key={job.id}>
-                      <a
-                        href={job.applyUrl}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="font-medium text-primary underline-offset-4 hover:underline"
-                      >
-                        {job.title} — {job.employer}
-                      </a>
-                      <span className="text-muted-foreground"> · {job.location}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ))}
-            {digest.length === 0 && (
-              <p className="text-sm text-muted-foreground">No digests yet.</p>
-            )}
-          </div>
-        </section>
+
+
       </main>
     </div>
   );
