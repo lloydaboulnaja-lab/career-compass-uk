@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Inbox, Loader2, Mail, Radar, Trash2 } from "lucide-react";
+import { Loader2, Radar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { JobCard } from "@/components/JobCard";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { findJobs } from "@/lib/bot.functions";
-import { digestStore, savedJobs, subscribeStore, type DigestEntry } from "@/lib/storage";
+import { savedJobs, subscribeStore } from "@/lib/storage";
 import { CATEGORY_LABEL, type JobCategory, type JobLead } from "@/lib/types";
 
 export const Route = createFileRoute("/")({
@@ -38,7 +38,6 @@ export const Route = createFileRoute("/")({
 
 const CATEGORIES: JobCategory[] = ["tech", "casual", "apprenticeship"];
 const EMPTY_JOBS: JobLead[] = [];
-const EMPTY_DIGEST: DigestEntry[] = [];
 
 function Feed() {
   const [category, setCategory] = useState<JobCategory>("tech");
@@ -47,13 +46,9 @@ function Feed() {
   const [ranAt, setRanAt] = useState<string | null>(null);
 
   const [saved, setSaved] = useState<JobLead[]>(EMPTY_JOBS);
-  const [digest, setDigest] = useState<DigestEntry[]>(EMPTY_DIGEST);
 
   useEffect(() => {
-    const sync = () => {
-      setSaved(savedJobs.get());
-      setDigest(digestStore.get());
-    };
+    const sync = () => setSaved(savedJobs.get());
     sync();
     return subscribeStore(sync);
   }, []);
@@ -62,19 +57,14 @@ function Feed() {
   const mutation = useMutation({
     mutationFn: (input: { category: JobCategory; extraArea: string }) =>
       run({ data: input }),
-    onSuccess: (result, variables) => {
+    onSuccess: (result) => {
       setJobs(result.jobs);
       setRanAt(result.searchedAt);
-      digestStore.add({
-        id: `${Date.now()}`,
-        sentAt: result.searchedAt,
-        subject: `${result.jobs.length} ${CATEGORY_LABEL[variables.category].toLowerCase()} openings near Dartford`,
-        jobs: result.jobs,
-      });
-      toast.success(`Found ${result.jobs.length} openings`);
+      toast.success(`Found ${result.jobs.length} live openings`);
     },
     onError: (error: Error) => toast.error(error.message || "The bot couldn't finish that run."),
   });
+
 
   useEffect(() => {
     setJobs([]);
