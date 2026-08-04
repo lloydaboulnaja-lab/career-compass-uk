@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { streamText } from "ai";
 import { createLovableAiGatewayProvider, parseJsonLoose } from "./ai-gateway.server";
 import { buildTailorPrompt } from "./job-prompts.server";
 import type { TailorResult } from "./types";
@@ -13,10 +13,21 @@ export async function runCvTailor(input: {
   if (!key) throw new Error("AI is not configured yet.");
 
   const gateway = createLovableAiGatewayProvider(key);
-  const { text } = await generateText({
-    model: gateway("openai/gpt-5.4"),
+
+  // Streamed on the wire (long CV rewrites otherwise get cut off), consumed server-side.
+  const result = streamText({
+    model: gateway("google/gemini-3.6-flash"),
     prompt: buildTailorPrompt(input),
+    maxRetries: 1,
   });
+
+  let text: string;
+  try {
+    text = await result.text;
+  } catch (error) {
+    console.error("cv tailor failed", error);
+    throw new Error("The CV rewriter couldn't finish. Give it another go.");
+  }
 
   const parsed = parseJsonLoose<TailorResult>(text);
   if (!parsed?.cvMarkdown) {

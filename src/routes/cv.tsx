@@ -48,7 +48,8 @@ function CvStudio() {
   const [saved, setSaved] = useState<JobLead[]>([]);
 
   useEffect(() => {
-    setCvText(cvStore.get());
+    const storedCv = cvStore.get();
+    if (storedCv) setCvText(storedCv);
     setSaved(savedJobs.get());
     const raw = window.localStorage.getItem("kjb.selectedJob");
     if (raw) {
@@ -71,7 +72,14 @@ function CvStudio() {
   const run = useServerFn(tailorCv);
   const mutation = useMutation({
     mutationFn: () =>
-      run({ data: { cvText, jobTitle, employer, jobDescription } }),
+      run({
+        data: {
+          cvText: cvText.trim().slice(0, 20000),
+          jobTitle: jobTitle.trim(),
+          employer: employer.trim(),
+          jobDescription: jobDescription.trim().slice(0, 8000),
+        },
+      }),
     onSuccess: (data) => {
       setResult(data);
       setEdited(data.cvMarkdown);
@@ -88,15 +96,24 @@ function CvStudio() {
   });
 
   const handleFile = async (file: File) => {
+    if (/\.(pdf|docx?|pages|rtf)$/i.test(file.name)) {
+      toast.error("PDF and Word files can't be read here — open it, select all, copy, paste below.");
+      return;
+    }
     if (file.size > 400_000) {
       toast.error("That file is a bit big — paste the text instead.");
       return;
     }
     const text = await file.text();
+    if (text.includes("\u0000") || !/[a-zA-Z]{4}/.test(text)) {
+      toast.error("That file isn't plain text — paste your CV in the box instead.");
+      return;
+    }
     setCvText(text);
     cvStore.set(text);
     toast.success("CV loaded");
   };
+
 
   const canRun = cvText.trim().length >= 50 && jobTitle.trim().length >= 2 && !mutation.isPending;
 
