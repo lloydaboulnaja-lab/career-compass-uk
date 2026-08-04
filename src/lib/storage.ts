@@ -2,7 +2,7 @@ import type { JobLead, TailorResult } from "./types";
 
 const CV_KEY = "kjb.cv";
 const SAVED_KEY = "kjb.saved";
-const DIGEST_KEY = "kjb.digest";
+const TAILORED_KEY = "kjb.tailored";
 const TAILORED_KEY = "kjb.tailored";
 
 /** Cached snapshots so useSyncExternalStore gets a stable reference. */
