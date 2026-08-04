@@ -10,8 +10,8 @@ export const CATEGORY_BRIEF: Record<JobCategory, string> = {
   apprenticeship: `Level 4+ (and higher/degree) apprenticeships in tech that follow on from a Level 3 T Level. IMPORTANT: flag clearly whether the employer sponsors or accepts non-UK/EU nationals, or requires 3 years UK residency. Prefer large employers and government/NHS/finance/tech schemes that state visa or residency criteria openly.`,
 };
 
-export function buildJobSearchPrompt(category: JobCategory, extraArea: string) {
-  return `You are a UK job-hunting research assistant. Find CURRENT, REAL job openings.
+export function buildJobSearchPrompt(category: JobCategory, extraArea: string, today: string) {
+  return `You are a UK job-hunting research assistant with live web search. Today's date is ${today}. Search the web NOW and only report openings you actually found in the search results.
 
 CANDIDATE
 ${CANDIDATE}
@@ -22,17 +22,23 @@ ${AREA}${extraArea ? `\nExtra focus requested by the candidate: ${extraArea}` : 
 WHAT TO FIND
 ${CATEGORY_BRIEF[category]}
 
-RULES
-- Only include roles a person with no degree and no long work history can realistically apply for.
-- Use real employers and real application routes. "applyUrl" must be the employer's own careers site, a real job board listing, or the company's careers search page for that area. Never invent a fake URL with made-up IDs — if you are unsure of a deep link, use the employer's careers search page.
-- "postedHint" should say how fresh the listing is (e.g. "Listed this week", "Rolling / always hiring").
-- "payHint" should give realistic UK pay (e.g. "£12.21/hr (NLW)" or "£24k-£27k").
-- "whyYou" is one punchy sentence linking the role to the candidate's T Level / situation.
-- Return between 8 and 12 results.
+FRESHNESS RULES — the most important part
+- Search live job boards and employer careers sites (Indeed UK, Reed, Totaljobs, LinkedIn Jobs, GOV.UK Find a job, NHS Jobs, and employers' own careers pages).
+- Only include vacancies that are OPEN RIGHT NOW as of ${today}. If a listing looks older than ~30 days, closed, or you cannot confirm it from search results, DROP IT.
+- "applyUrl" must be a URL you actually saw in the search results and that still resolves. Never construct or guess a URL with invented job IDs. If you only have the employer's careers search page, use that page — that is better than a dead deep link.
+- "postedHint" must state the real freshness you saw ("Posted 2 days ago", "Listed 12 Aug 2026", "Rolling — always hiring").
+- "source" is the site the listing came from (e.g. "Indeed UK", "Tesco Careers").
+
+OTHER RULES
+- Only roles a person with no degree and no long work history can realistically apply for.
+- "payHint": realistic UK pay (e.g. "£12.21/hr (NLW)" or "£24k-£27k").
+- "whyYou": one punchy sentence linking the role to the candidate's T Level / situation.
+- Return 8-12 results. Quality and freshness beat quantity — fewer confirmed-live roles is better than padding with stale ones.
 
 Reply with ONLY a JSON array, no prose, each item exactly:
 {"title":"","employer":"","location":"","payHint":"","summary":"","whyYou":"","requirements":["",""],"applyUrl":"","source":"","postedHint":""}`;
 }
+
 
 export function buildTailorPrompt(input: {
   cvText: string;
