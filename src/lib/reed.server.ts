@@ -61,8 +61,9 @@ const SEARCHES: Record<JobCategory, SearchSpec> = {
       "IT apprentice",
       "software apprentice",
       "data apprentice",
-      "digital apprenticeship",
-      "level 4 apprenticeship",
+      "digital support apprentice",
+      "cyber security apprentice",
+      "software developer apprenticeship",
     ],
     proximity: 25,
     offset: "LastWeek",
@@ -72,14 +73,26 @@ const SEARCHES: Record<JobCategory, SearchSpec> = {
 
 /** Roles that need years of experience or a degree — not worth showing. */
 const EXCLUDE_TITLE =
-  /\b(senior|lead|head of|director|manager|principal|architect|consultant|engineer ii|3rd line|third line)\b/i;
+  /\b(senior|lead|head of|director|manager|principal|architect|consultant|engineer ii|3rd line|third line|cleaner|cleaning|driver|driving|courier|delivery|warehouse|security officer|nursery|childcare|care assistant|carer)\b/i;
 const EXCLUDE_EMPLOYER = /cashback|survey|self-?employed|commission only/i;
 
-const WHY: Record<JobCategory, string> = {
-  tech: "Entry-level tech work your Level 3 T Level in Digital Software Development lines up with — no degree asked for.",
-  casual: "Part-time hours near Dartford that fit inside a 20-hour term-time work limit.",
+const ALLOW_TITLE: Record<JobCategory, RegExp> = {
+  tech:
+    /\b(data analyst|software tester|qa tester|quality assurance|IT support|service desk|help\s?desk|IT technician|technical support|junior (?:software|web|data|IT)|trainee (?:developer|tester|analyst|IT)|digital support|software developer|web developer|cyber security)\b/i,
+  casual:
+    /\b(barista|retail assistant|sales assistant|shop assistant|customer assistant|store assistant|crew member|team member|waiter|waitress|restaurant server|front of house|cashier|food service assistant)\b/i,
   apprenticeship:
-    "A step up from your Level 3 T Level — check the advert for residency or visa criteria before applying.",
+    /\b(?:apprentice|apprenticeship)\b.*\b(?:IT|software|data|digital|technology|tech|cyber|developer|support)\b|\b(?:IT|software|data|digital|technology|tech|cyber|developer|support)\b.*\b(?:apprentice|apprenticeship)\b/i,
+};
+
+const AGE_RESTRICTED_DESCRIPTION =
+  /\b(?:must be|need to be|applicants? must be|aged)\s+(?:at least\s+)?18\b|\b18\+\b|\bfull (?:UK )?driving licen[cs]e required\b/i;
+
+const WHY: Record<JobCategory, string> = {
+  tech: "Entry-level tech work that lines up with your Level 3 T Level in Digital Software Development.",
+  casual: "A customer-facing role suitable to check as a 17-year-old near Dartford.",
+  apprenticeship:
+    "A tech apprenticeship that builds on your Level 3 T Level — check the advert's residency and visa criteria.",
 };
 
 function money(job: ReedJobDetail): string {
@@ -140,6 +153,8 @@ export async function fetchLiveJobs(
       if (detail.expiryDate && new Date(detail.expiryDate).getTime() < now) continue;
       if (EXCLUDE_TITLE.test(detail.jobTitle)) continue;
       if (EXCLUDE_EMPLOYER.test(detail.ouName ?? "")) continue;
+      if (!ALLOW_TITLE[category].test(detail.jobTitle)) continue;
+      if (AGE_RESTRICTED_DESCRIPTION.test(detail.jobDescriptionSnippet ?? "")) continue;
       seen.add(detail.jobId);
 
       leads.push({

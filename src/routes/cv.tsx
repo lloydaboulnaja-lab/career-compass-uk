@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Copy, Download, FileText, Loader2, Sparkles, Upload } from "lucide-react";
@@ -46,10 +45,11 @@ function CvStudio() {
   const [result, setResult] = useState<TailorResult | null>(null);
   const [edited, setEdited] = useState("");
   const [saved, setSaved] = useState<JobLead[]>([]);
+  const [isTailoring, setIsTailoring] = useState(false);
 
   useEffect(() => {
     const storedCv = cvStore.get();
-    if (storedCv) setCvText(storedCv);
+    if (storedCv) setCvText((current) => current || storedCv);
     setSaved(savedJobs.get());
     const raw = window.localStorage.getItem("kjb.selectedJob");
     if (raw) {
@@ -70,17 +70,17 @@ function CvStudio() {
   }, []);
 
   const run = useServerFn(tailorCv);
-  const mutation = useMutation({
-    mutationFn: () =>
-      run({
+  const submitTailoring = async () => {
+    setIsTailoring(true);
+    try {
+      const data = await run({
         data: {
           cvText: cvText.trim().slice(0, 20000),
           jobTitle: jobTitle.trim(),
           employer: employer.trim(),
           jobDescription: jobDescription.trim().slice(0, 8000),
         },
-      }),
-    onSuccess: (data) => {
+      });
       setResult(data);
       setEdited(data.cvMarkdown);
       tailoredStore.add({
@@ -91,9 +91,12 @@ function CvStudio() {
         createdAt: new Date().toISOString(),
       });
       toast.success("Tailored CV ready");
-    },
-    onError: (error: Error) => toast.error(error.message || "Couldn't tailor that one."),
-  });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't tailor that one.");
+    } finally {
+      setIsTailoring(false);
+    }
+  };
 
   const handleFile = async (file: File) => {
     if (/\.(pdf|docx?|pages|rtf)$/i.test(file.name)) {
@@ -115,7 +118,25 @@ function CvStudio() {
   };
 
 
-  const canRun = cvText.trim().length >= 50 && jobTitle.trim().length >= 2 && !mutation.isPending;
+  const cvReady = cvText.trim().length >= 50;
+  const titleReady = jobTitle.trim().length >= 2;
+  const advertReady = jobDescription.trim().length >= 20;
+
+  const startTailoring = () => {
+    if (!cvReady) {
+      toast.error("Paste at least 50 characters of your CV first.");
+      return;
+    }
+    if (!titleReady) {
+      toast.error("Add the job title first.");
+      return;
+    }
+    if (!advertReady) {
+      toast.error("Paste the job description so the CV can be matched properly.");
+      return;
+    }
+    void submitTailoring();
+  };
 
   return (
     <div className="min-h-screen">
@@ -159,6 +180,9 @@ function CvStudio() {
               <p className="text-xs text-muted-foreground">
                 Got a PDF or Word CV? Open it, select all, copy, paste here once. Saved automatically.
               </p>
+               {!cvReady && cvText.length > 0 && (
+                 <p className="text-xs font-medium text-destructive">Paste at least 50 characters of your CV.</p>
+               )}
             </div>
 
             {saved.length > 0 && (
@@ -215,10 +239,13 @@ function CvStudio() {
                 rows={7}
                 placeholder="Paste the advert. The more of it you paste, the better the match."
               />
+               {!advertReady && jobDescription.length > 0 && (
+                 <p className="text-xs font-medium text-destructive">Paste at least a short job description.</p>
+               )}
             </div>
 
-            <Button size="lg" className="w-full" disabled={!canRun} onClick={() => mutation.mutate()}>
-              {mutation.isPending ? (
+            <Button type="button" size="lg" className="w-full" disabled={isTailoring} onClick={startTailoring}>
+              {isTailoring ? (
                 <>
                   <Loader2 className="size-4 animate-spin" /> Rewriting…
                 </>
