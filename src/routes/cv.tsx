@@ -49,7 +49,7 @@ function CvStudio() {
 
   useEffect(() => {
     const storedCv = cvStore.get();
-    if (storedCv) setCvText(storedCv);
+    if (storedCv) setCvText((current) => current || storedCv);
     setSaved(savedJobs.get());
     const raw = window.localStorage.getItem("kjb.selectedJob");
     if (raw) {
@@ -115,7 +115,10 @@ function CvStudio() {
   };
 
 
-  const canRun = cvText.trim().length >= 50 && jobTitle.trim().length >= 2 && !mutation.isPending;
+  const cvReady = cvText.trim().length >= 50;
+  const titleReady = jobTitle.trim().length >= 2;
+  const advertReady = jobDescription.trim().length >= 20;
+  const canRun = cvReady && titleReady && advertReady && !mutation.isPending;
 
   return (
     <div className="min-h-screen">
@@ -159,6 +162,9 @@ function CvStudio() {
               <p className="text-xs text-muted-foreground">
                 Got a PDF or Word CV? Open it, select all, copy, paste here once. Saved automatically.
               </p>
+               {!cvReady && cvText.length > 0 && (
+                 <p className="text-xs font-medium text-destructive">Paste at least 50 characters of your CV.</p>
+               )}
             </div>
 
             {saved.length > 0 && (
@@ -215,6 +221,9 @@ function CvStudio() {
                 rows={7}
                 placeholder="Paste the advert. The more of it you paste, the better the match."
               />
+               {!advertReady && jobDescription.length > 0 && (
+                 <p className="text-xs font-medium text-destructive">Paste at least a short job description.</p>
+               )}
             </div>
 
             <Button size="lg" className="w-full" disabled={!canRun} onClick={() => mutation.mutate()}>
