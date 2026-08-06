@@ -118,7 +118,22 @@ function CvStudio() {
   const cvReady = cvText.trim().length >= 50;
   const titleReady = jobTitle.trim().length >= 2;
   const advertReady = jobDescription.trim().length >= 20;
-  const canRun = cvReady && titleReady && advertReady && !mutation.isPending;
+
+  const startTailoring = () => {
+    if (!cvReady) {
+      toast.error("Paste at least 50 characters of your CV first.");
+      return;
+    }
+    if (!titleReady) {
+      toast.error("Add the job title first.");
+      return;
+    }
+    if (!advertReady) {
+      toast.error("Paste the job description so the CV can be matched properly.");
+      return;
+    }
+    mutation.mutate();
+  };
 
   return (
     <div className="min-h-screen">
@@ -226,7 +241,7 @@ function CvStudio() {
                )}
             </div>
 
-            <Button size="lg" className="w-full" disabled={!canRun} onClick={() => mutation.mutate()}>
+            <Button size="lg" className="w-full" disabled={mutation.isPending} onClick={startTailoring}>
               {mutation.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" /> Rewriting…
