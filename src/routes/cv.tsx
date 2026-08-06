@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Copy, Download, FileText, Loader2, Sparkles, Upload } from "lucide-react";
@@ -46,6 +45,7 @@ function CvStudio() {
   const [result, setResult] = useState<TailorResult | null>(null);
   const [edited, setEdited] = useState("");
   const [saved, setSaved] = useState<JobLead[]>([]);
+  const [isTailoring, setIsTailoring] = useState(false);
 
   useEffect(() => {
     const storedCv = cvStore.get();
@@ -70,17 +70,17 @@ function CvStudio() {
   }, []);
 
   const run = useServerFn(tailorCv);
-  const mutation = useMutation({
-    mutationFn: () =>
-      run({
+  const submitTailoring = async () => {
+    setIsTailoring(true);
+    try {
+      const data = await run({
         data: {
           cvText: cvText.trim().slice(0, 20000),
           jobTitle: jobTitle.trim(),
           employer: employer.trim(),
           jobDescription: jobDescription.trim().slice(0, 8000),
         },
-      }),
-    onSuccess: (data) => {
+      });
       setResult(data);
       setEdited(data.cvMarkdown);
       tailoredStore.add({
@@ -91,9 +91,12 @@ function CvStudio() {
         createdAt: new Date().toISOString(),
       });
       toast.success("Tailored CV ready");
-    },
-    onError: (error: Error) => toast.error(error.message || "Couldn't tailor that one."),
-  });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't tailor that one.");
+    } finally {
+      setIsTailoring(false);
+    }
+  };
 
   const handleFile = async (file: File) => {
     if (/\.(pdf|docx?|pages|rtf)$/i.test(file.name)) {
@@ -132,7 +135,7 @@ function CvStudio() {
       toast.error("Paste the job description so the CV can be matched properly.");
       return;
     }
-    mutation.mutate();
+    void submitTailoring();
   };
 
   return (
@@ -241,8 +244,8 @@ function CvStudio() {
                )}
             </div>
 
-            <Button size="lg" className="w-full" disabled={mutation.isPending} onClick={startTailoring}>
-              {mutation.isPending ? (
+            <Button type="button" size="lg" className="w-full" disabled={isTailoring} onClick={startTailoring}>
+              {isTailoring ? (
                 <>
                   <Loader2 className="size-4 animate-spin" /> Rewriting…
                 </>
