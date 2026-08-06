@@ -22,6 +22,7 @@ REWRITE RULES — these matter:
 - Keep it to one page of content. Short profile (max 3 lines), then the sections that matter most for THIS job first.
 - For casual/retail/hospitality roles: lead with reliability, customer interaction, availability and pace, not code.
 - For tech roles: lead with tools, projects, and what was built or tested.
+- The candidate is 17. Never imply they can drive, work age-restricted duties, or hold experience they have not stated.
 
 Reply with ONLY JSON, no prose:
 {

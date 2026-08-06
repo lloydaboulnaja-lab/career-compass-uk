@@ -24,9 +24,13 @@ function read<T>(key: string, fallback: T): T {
 
 function write(key: string, value: unknown) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(value));
-  cache.set(key, value);
-  window.dispatchEvent(new Event("kjb-storage"));
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    cache.set(key, value);
+    window.dispatchEvent(new Event("kjb-storage"));
+  } catch (error) {
+    console.warn("Could not save locally", error);
+  }
 }
 
 if (typeof window !== "undefined") {
@@ -67,7 +71,7 @@ export interface TailoredRecord extends TailorResult {
 export const tailoredStore = {
   get: () => read<TailoredRecord[]>(TAILORED_KEY, []),
   add: (record: TailoredRecord) =>
-    write(TAILORED_KEY, [record, ...read<TailoredRecord[]>(TAILORED_KEY, [])].slice(0, 30)),
+    write(TAILORED_KEY, [record, ...read<TailoredRecord[]>(TAILORED_KEY, [])].slice(0, 5)),
 };
 
 export function subscribeStore(listener: () => void) {

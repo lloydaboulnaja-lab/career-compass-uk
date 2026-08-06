@@ -19,6 +19,7 @@ export async function runCvTailor(input: {
     model: gateway("google/gemini-3.6-flash"),
     prompt: buildTailorPrompt(input),
     maxRetries: 1,
+    abortSignal: AbortSignal.timeout(55_000),
   });
 
   let text: string;
@@ -26,7 +27,7 @@ export async function runCvTailor(input: {
     text = await result.text;
   } catch (error) {
     console.error("cv tailor failed", error);
-    throw new Error("The CV rewriter couldn't finish. Give it another go.");
+    throw new Error("The CV rewriter took too long. Please try again.");
   }
 
   const parsed = parseJsonLoose<TailorResult>(text);
