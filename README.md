@@ -1,6 +1,6 @@
-# Dartford Job Bot
+# A Job Bot
 
-A fast, focused job-search assistant built for a 17-year-old T Level Digital Software Development student in Dartford, Kent. It pulls live entry-level roles from Reed.co.uk and uses AI to tailor your CV to any job you want to apply for.
+A fast, focused job-search assistant built for a 17-year-old T Level Digital Software Development student in Kent, England. It pulls live entry-level roles from Reed.co.uk and uses AI to tailor your CV to any job you want to apply for.
 
 > Built because scrolling through expired listings and rewriting CVs by hand is a waste of time.
 
