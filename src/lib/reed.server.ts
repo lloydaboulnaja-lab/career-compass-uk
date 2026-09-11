@@ -184,16 +184,15 @@ export async function fetchLiveJobs(
   const ranked = leads.sort((a, b) => b.postedAt - a.postedAt).slice(0, 24);
 
   const alive: JobLead[] = [];
-  // Small batches: Reed rate-limits (429) if we hit every advert at once.
-  for (let index = 0; index < ranked.length; index += 4) {
-    const slice = ranked.slice(index, index + 4);
+  // Batched: Reed rate-limits (429) if we hit every advert at once.
+  for (let index = 0; index < ranked.length; index += 8) {
+    const slice = ranked.slice(index, index + 8);
     const results = await Promise.all(
       slice.map(async ({ postedAt: _postedAt, ...lead }) =>
         (await isDeadLink(lead.applyUrl)) ? null : lead,
       ),
     );
     for (const lead of results) if (lead) alive.push(lead);
-    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
   return alive;
@@ -206,7 +205,7 @@ async function isDeadLink(url: string): Promise<boolean> {
       method: "HEAD",
       headers: { "user-agent": UA, accept: "text/html" },
       redirect: "follow",
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(4000),
     });
     if (response.status === 404 || response.status === 410) return true;
     return !/\/jobs\//i.test(new URL(response.url).pathname) && response.status < 400;
