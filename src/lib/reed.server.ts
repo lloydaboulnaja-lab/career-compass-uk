@@ -150,7 +150,7 @@ export async function fetchLiveJobs(
 
   const now = Date.now();
   const seen = new Set<number>();
-  const leads: JobLead[] = [];
+  const leads: (JobLead & { postedAt: number })[] = [];
 
   for (const batch of batches) {
     for (const { jobDetail: detail, url } of batch) {
@@ -160,9 +160,11 @@ export async function fetchLiveJobs(
       if (EXCLUDE_EMPLOYER.test(detail.ouName ?? "")) continue;
       if (!ALLOW_TITLE[category].test(detail.jobTitle)) continue;
       if (AGE_RESTRICTED_DESCRIPTION.test(detail.jobDescriptionSnippet ?? "")) continue;
+      if (EXCLUDE_COURSE.test(`${detail.jobTitle} ${detail.jobDescriptionSnippet ?? ""}`)) continue;
       seen.add(detail.jobId);
 
       leads.push({
+        postedAt: new Date(detail.dateCreated).getTime() || 0,
         id: `reed-${detail.jobId}`,
         category,
         title: detail.jobTitle,
