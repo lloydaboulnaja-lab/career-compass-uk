@@ -78,35 +78,59 @@ function Feed() {
       <SiteHeader />
 
       <section className="grid-paper border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
           <Badge className="mb-4 bg-signal text-signal-foreground hover:bg-signal">
             Dartford · Gravesend · Bexley · London
           </Badge>
-          <h1 className="max-w-3xl text-4xl font-bold leading-[1.05] sm:text-5xl">
+          <h1 className="max-w-3xl text-3xl font-bold leading-[1.05] sm:text-5xl">
             Jobs you can actually get, without a degree.
           </h1>
-          <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-            Run the bot and it goes looking for entry-level tech roles, casual shifts at the places
-            round you, and Level 4 apprenticeships that take international students. Then it rewrites
-            your CV for whichever one you go for.
+          <p className="mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Every run pulls openings posted this week, checks each advert is still live, and drops
+            the dead links before you see them. Then it rewrites your CV for whichever one you go
+            for.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
+            {["Live adverts only", "No cleaner / driver roles", "16–18 friendly", "Tech-only apprenticeships"].map(
+              (chip) => (
+                <span key={chip} className="rounded-full border border-border bg-card px-3 py-1">
+                  {chip}
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="sticky top-16 z-20 border-b border-border bg-background/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3">
+          <Tabs value={category} onValueChange={(value) => setCategory(value as JobCategory)}>
+            <TabsList className="w-full">
+              {CATEGORIES.map((item) => (
+                <TabsTrigger key={item} value={item} className="flex-1 text-xs sm:text-sm">
+                  {CATEGORY_LABEL[item]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               value={extraArea}
               onChange={(event) => setExtraArea(event.target.value)}
-              placeholder="Anything specific? e.g. Bluewater weekends, IT support only"
+              placeholder="Anything specific? e.g. Bluewater weekends, IT support"
               maxLength={200}
               className="sm:max-w-md"
             />
             <Button
-              size="lg"
               onClick={() => mutation.mutate({ category, extraArea })}
               disabled={mutation.isPending}
+              className="sm:w-auto"
             >
               {mutation.isPending ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> Searching…
+                  <Loader2 className="size-4 animate-spin" /> Checking adverts…
                 </>
               ) : (
                 <>
@@ -115,29 +139,18 @@ function Feed() {
               )}
             </Button>
           </div>
-
-          <Tabs
-            value={category}
-            onValueChange={(value) => setCategory(value as JobCategory)}
-            className="mt-6"
-          >
-            <TabsList>
-              {CATEGORIES.map((item) => (
-                <TabsTrigger key={item} value={item}>
-                  {CATEGORY_LABEL[item]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
         </div>
-      </section>
+      </div>
 
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8">
         {ranAt && (
-          <p className="mb-4 text-sm text-muted-foreground">
-            Last run {new Date(ranAt).toLocaleString("en-GB")} · always double-check the listing is
-            still open before you apply.
-          </p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span>
+              <strong className="text-foreground">{jobs.length}</strong> live{" "}
+              {CATEGORY_LABEL[category].toLowerCase()} openings
+            </span>
+            <span>Checked {new Date(ranAt).toLocaleString("en-GB")}</span>
+          </div>
         )}
 
         {mutation.isPending && (
