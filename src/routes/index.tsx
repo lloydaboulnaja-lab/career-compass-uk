@@ -195,8 +195,8 @@ function Feed() {
         )}
 
         {saved.length > 0 && (
-          <section className="mt-14">
-            <h2 className="font-display text-2xl font-bold">Saved ({saved.length})</h2>
+          <section className="mt-12 border-t border-border pt-8">
+            <h2 className="font-display text-xl font-bold sm:text-2xl">Saved ({saved.length})</h2>
             <div className="mt-4 grid gap-3">
               {saved.map((job) => (
                 <div
