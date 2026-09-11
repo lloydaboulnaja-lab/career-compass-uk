@@ -193,6 +193,7 @@ export async function fetchLiveJobs(
       ),
     );
     for (const lead of results) if (lead) alive.push(lead);
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
   return alive;
