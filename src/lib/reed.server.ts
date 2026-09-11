@@ -181,7 +181,33 @@ export async function fetchLiveJobs(
     }
   }
 
-  return leads
-    .sort((a, b) => b.id.localeCompare(a.id))
-    .slice(0, 24);
+  const ranked = leads.sort((a, b) => b.postedAt - a.postedAt).slice(0, 24);
+
+  const checked = await Promise.all(
+    ranked.map(async ({ postedAt: _postedAt, ...lead }) => {
+      const alive = await isLive(lead.applyUrl);
+      return alive ? lead : null;
+    }),
+  );
+
+  return checked.filter((lead): lead is JobLead => lead !== null);
+}
+
+/** Confirms the advert page still exists (Reed 404s / redirects away once a job closes). */
+async function isLive(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": UA, accept: "text/html" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!response.ok) return false;
+    if (!/\/jobs\/[a-z0-9-]+\/\d+/i.test(response.url)) return false;
+    const html = await response.text();
+    return !/this job (?:has|is no longer)|job is no longer available|expired/i.test(
+      html.slice(0, 40_000),
+    );
+  } catch {
+    return false;
+  }
 }
