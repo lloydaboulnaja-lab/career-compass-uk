@@ -183,30 +183,32 @@ export async function fetchLiveJobs(
 
   const ranked = leads.sort((a, b) => b.postedAt - a.postedAt).slice(0, 24);
 
-  const checked = await Promise.all(
-    ranked.map(async ({ postedAt: _postedAt, ...lead }) => {
-      const alive = await isLive(lead.applyUrl);
-      return alive ? lead : null;
-    }),
-  );
+  const alive: JobLead[] = [];
+  // Small batches: Reed rate-limits (429) if we hit every advert at once.
+  for (let index = 0; index < ranked.length; index += 4) {
+    const slice = ranked.slice(index, index + 4);
+    const results = await Promise.all(
+      slice.map(async ({ postedAt: _postedAt, ...lead }) =>
+        (await isDeadLink(lead.applyUrl)) ? null : lead,
+      ),
+    );
+    for (const lead of results) if (lead) alive.push(lead);
+  }
 
-  return checked.filter((lead): lead is JobLead => lead !== null);
+  return alive;
 }
 
-/** Confirms the advert page still exists (Reed 404s / redirects away once a job closes). */
-async function isLive(url: string): Promise<boolean> {
+/** True only when Reed says the advert is gone — anything ambiguous stays in the feed. */
+async function isDeadLink(url: string): Promise<boolean> {
   try {
     const response = await fetch(url, {
+      method: "HEAD",
       headers: { "user-agent": UA, accept: "text/html" },
       redirect: "follow",
       signal: AbortSignal.timeout(6000),
     });
-    if (!response.ok) return false;
-    if (!/\/jobs\/[a-z0-9-]+\/\d+/i.test(response.url)) return false;
-    const html = await response.text();
-    return !/this job (?:has|is no longer)|job is no longer available|expired/i.test(
-      html.slice(0, 40_000),
-    );
+    if (response.status === 404 || response.status === 410) return true;
+    return !/\/jobs\//i.test(new URL(response.url).pathname) && response.status < 400;
   } catch {
     return false;
   }
