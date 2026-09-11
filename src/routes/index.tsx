@@ -162,11 +162,14 @@ function Feed() {
         )}
 
         {!mutation.isPending && jobs.length === 0 && (
-          <div className="surface-card p-10 text-center">
-            <h2 className="font-display text-xl font-bold">Nothing in the feed yet</h2>
+          <div className="surface-card p-8 text-center sm:p-10">
+            <h2 className="font-display text-xl font-bold">
+              {ranAt ? "Nothing live in that category right now" : "Nothing in the feed yet"}
+            </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Pick a category above and hit “Run the bot”. Each run also drops a digest into your
-              inbox below.
+              {ranAt
+                ? "Everything found was already closed. Try another category, or add a keyword like “Bluewater”."
+                : "Pick a category above and hit “Run the bot” — it only keeps adverts that are still open."}
             </p>
           </div>
         )}
