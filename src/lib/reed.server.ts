@@ -51,9 +51,11 @@ const SEARCHES: Record<JobCategory, SearchSpec> = {
       "customer assistant",
       "sales assistant",
       "barista",
+      "waiter",
+      "front of house",
     ],
-    proximity: 10,
-    offset: "LastThreeDays",
+    proximity: 15,
+    offset: "LastWeek",
     partTime: true,
   },
   apprenticeship: {
@@ -75,6 +77,9 @@ const SEARCHES: Record<JobCategory, SearchSpec> = {
 const EXCLUDE_TITLE =
   /\b(senior|lead|head of|director|manager|principal|architect|consultant|engineer ii|3rd line|third line|cleaner|cleaning|driver|driving|courier|delivery|warehouse|security officer|nursery|childcare|care assistant|carer)\b/i;
 const EXCLUDE_EMPLOYER = /cashback|survey|self-?employed|commission only/i;
+/** Paid training-course adverts dressed up as jobs. */
+const EXCLUDE_COURSE =
+  /job guarantee|guaranteed job|bootcamp|boot camp|training course|course fee|self[- ]funded|study now|earn while you learn course|traineeship programme fee/i;
 
 const ALLOW_TITLE: Record<JobCategory, RegExp> = {
   tech:
