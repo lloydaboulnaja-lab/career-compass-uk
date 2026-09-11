@@ -51,9 +51,11 @@ const SEARCHES: Record<JobCategory, SearchSpec> = {
       "customer assistant",
       "sales assistant",
       "barista",
+      "waiter",
+      "front of house",
     ],
-    proximity: 10,
-    offset: "LastThreeDays",
+    proximity: 15,
+    offset: "LastWeek",
     partTime: true,
   },
   apprenticeship: {
@@ -75,6 +77,9 @@ const SEARCHES: Record<JobCategory, SearchSpec> = {
 const EXCLUDE_TITLE =
   /\b(senior|lead|head of|director|manager|principal|architect|consultant|engineer ii|3rd line|third line|cleaner|cleaning|driver|driving|courier|delivery|warehouse|security officer|nursery|childcare|care assistant|carer)\b/i;
 const EXCLUDE_EMPLOYER = /cashback|survey|self-?employed|commission only/i;
+/** Paid training-course adverts dressed up as jobs. */
+const EXCLUDE_COURSE =
+  /job guarantee|guaranteed job|bootcamp|boot camp|training course|course fee|self[- ]funded|study now|earn while you learn course|traineeship programme fee/i;
 
 const ALLOW_TITLE: Record<JobCategory, RegExp> = {
   tech:
@@ -145,7 +150,7 @@ export async function fetchLiveJobs(
 
   const now = Date.now();
   const seen = new Set<number>();
-  const leads: JobLead[] = [];
+  const leads: (JobLead & { postedAt: number })[] = [];
 
   for (const batch of batches) {
     for (const { jobDetail: detail, url } of batch) {
@@ -155,9 +160,11 @@ export async function fetchLiveJobs(
       if (EXCLUDE_EMPLOYER.test(detail.ouName ?? "")) continue;
       if (!ALLOW_TITLE[category].test(detail.jobTitle)) continue;
       if (AGE_RESTRICTED_DESCRIPTION.test(detail.jobDescriptionSnippet ?? "")) continue;
+      if (EXCLUDE_COURSE.test(`${detail.jobTitle} ${detail.jobDescriptionSnippet ?? ""}`)) continue;
       seen.add(detail.jobId);
 
       leads.push({
+        postedAt: new Date(detail.dateCreated).getTime() || 0,
         id: `reed-${detail.jobId}`,
         category,
         title: detail.jobTitle,
@@ -174,7 +181,35 @@ export async function fetchLiveJobs(
     }
   }
 
-  return leads
-    .sort((a, b) => b.id.localeCompare(a.id))
-    .slice(0, 24);
+  const ranked = leads.sort((a, b) => b.postedAt - a.postedAt).slice(0, 24);
+
+  const alive: JobLead[] = [];
+  // Batched: Reed rate-limits (429) if we hit every advert at once.
+  for (let index = 0; index < ranked.length; index += 8) {
+    const slice = ranked.slice(index, index + 8);
+    const results = await Promise.all(
+      slice.map(async ({ postedAt: _postedAt, ...lead }) =>
+        (await isDeadLink(lead.applyUrl)) ? null : lead,
+      ),
+    );
+    for (const lead of results) if (lead) alive.push(lead);
+  }
+
+  return alive;
+}
+
+/** True only when Reed says the advert is gone — anything ambiguous stays in the feed. */
+async function isDeadLink(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      headers: { "user-agent": UA, accept: "text/html" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(4000),
+    });
+    if (response.status === 404 || response.status === 410) return true;
+    return !/\/jobs\//i.test(new URL(response.url).pathname) && response.status < 400;
+  } catch {
+    return false;
+  }
 }
