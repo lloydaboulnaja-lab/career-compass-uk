@@ -79,7 +79,7 @@ export function JobCard({ job, saved, onToggleSave, onTailor }: Props) {
           </Link>
         </Button>
         {job.source && (
-          <span className="w-full text-[11px] text-muted-foreground">Live on {job.source}</span>
+          <span className="w-full text-[11px] font-medium text-primary">Source: {job.source}</span>
         )}
       </div>
     </article>
