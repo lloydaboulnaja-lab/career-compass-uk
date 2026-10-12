@@ -59,6 +59,15 @@ export const savedJobs = {
       read<JobLead[]>(SAVED_KEY, []).filter((j) => j.id !== id),
     ),
 };
+export const TRACK_STATUSES = ["Saved", "Applied", "Interview", "Offer", "Rejected"] as const;
+export type TrackStatus = (typeof TRACK_STATUSES)[number];
+const STATUS_KEY = "kjb.status";
+
+export const trackerStore = {
+  get: () => read<Record<string, TrackStatus>>(STATUS_KEY, {}),
+  set: (id: string, status: TrackStatus) =>
+    write(STATUS_KEY, { ...read<Record<string, TrackStatus>>(STATUS_KEY, {}), [id]: status }),
+};
 
 
 export interface TailoredRecord extends TailorResult {
