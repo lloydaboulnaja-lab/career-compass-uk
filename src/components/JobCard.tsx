@@ -25,14 +25,17 @@ export function JobCard({ job, saved, onToggleSave, onTailor }: Props) {
           <h3 className="font-display text-lg font-bold leading-tight">{job.title}</h3>
           <p className="truncate text-sm font-medium text-muted-foreground">{job.employer}</p>
         </div>
-        <button
+        <Button
           type="button"
-          aria-label={saved ? "Remove from saved" : "Save job"}
+          variant="outline"
+          size="icon"
+          aria-label={saved ? "Remove from tracker" : "Save to tracker"}
+          title={saved ? "Remove from tracker" : "Save to tracker"}
           onClick={() => onToggleSave(job)}
           className="shrink-0 rounded-md border border-border p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           {saved ? <BookmarkCheck className="size-4 text-primary" /> : <Bookmark className="size-4" />}
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs">

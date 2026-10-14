@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep application tracking in the dedicated `/tracker` route using the shared browser stores, so every job category is accessible without running a search.

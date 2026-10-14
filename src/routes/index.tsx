@@ -1,11 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Loader2, Radar, Trash2 } from "lucide-react";
+import { Loader2, Radar } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { JobCard } from "@/components/JobCard";
+import { ApplicationTracker } from "@/components/ApplicationTracker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,6 @@ import { findJobs } from "@/lib/bot.functions";
 import {
   savedJobs,
   subscribeStore,
-  trackerStore,
-  TRACK_STATUSES,
-  type TrackStatus,
 } from "@/lib/storage";
 import { CATEGORY_LABEL, type JobCategory, type JobLead } from "@/lib/types";
 
@@ -52,12 +50,10 @@ function Feed() {
   const [ranAt, setRanAt] = useState<string | null>(null);
 
   const [saved, setSaved] = useState<JobLead[]>(EMPTY_JOBS);
-  const [status, setStatus] = useState<Record<string, TrackStatus>>({});
 
   useEffect(() => {
     const sync = () => {
       setSaved(savedJobs.get());
-      setStatus(trackerStore.get());
     };
     sync();
     return subscribeStore(sync);
@@ -193,7 +189,7 @@ function Feed() {
                 saved={savedIds.has(job.id)}
                 onToggleSave={(target) => {
                   const added = savedJobs.toggle(target);
-                  toast.success(added ? "Saved" : "Removed from saved");
+                  toast.success(added ? "Added to your tracker" : "Removed from tracker");
                 }}
                 onTailor={(target) => {
                   window.localStorage.setItem("kjb.selectedJob", JSON.stringify(target));
@@ -204,55 +200,13 @@ function Feed() {
           </div>
         )}
 
-        {saved.length > 0 && (
-          <section className="mt-12 border-t border-border pt-8">
-            <h2 className="font-display text-xl font-bold sm:text-2xl">
-              Application tracker ({saved.length})
-            </h2>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {TRACK_STATUSES.map((s) => (
-                <span key={s} className="rounded-full border border-border bg-card px-3 py-1">
-                  {s}: {saved.filter((j) => (status[j.id] ?? "Saved") === s).length}
-                </span>
-              ))}
-            </div>
-            <div className="mt-4 grid gap-3">
-              {saved.map((job) => (
-                <div
-                  key={job.id}
-                  className="surface-card flex flex-wrap items-center justify-between gap-3 p-4"
-                >
-                  <div>
-                    <p className="font-semibold">{job.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {job.employer} · {job.location} · {CATEGORY_LABEL[job.category]}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      aria-label="Application status"
-                      value={status[job.id] ?? "Saved"}
-                      onChange={(e) => trackerStore.set(job.id, e.target.value as TrackStatus)}
-                      className="rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      {TRACK_STATUSES.map((s) => (
-                        <option key={s}>{s}</option>
-                      ))}
-                    </select>
-                    <Button asChild size="sm" variant="outline">
-                      <a href={job.applyUrl} target="_blank" rel="noreferrer noopener">
-                        Open
-                      </a>
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => savedJobs.remove(job.id)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <section className="mt-12 border-t border-border pt-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold sm:text-2xl">Application tracker</h2>
+            <Button asChild variant="outline" size="sm"><Link to="/tracker">View tracker</Link></Button>
+          </div>
+          <ApplicationTracker />
+        </section>
 
 
 
