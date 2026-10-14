@@ -4,6 +4,7 @@ import { Bot } from "lucide-react";
 const links = [
   { to: "/", label: "Job feed" },
   { to: "/cv", label: "CV studio" },
+  { to: "/tracker", label: "Tracker" },
 ] as const;
 
 export function SiteHeader() {
@@ -11,12 +12,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
         <Link to="/" className="flex items-center gap-2">
           <span className="flex size-9 items-center justify-center rounded-md bg-ink text-ink-foreground">
             <Bot className="size-5" />
           </span>
-          <span className="font-display text-base font-bold tracking-tight sm:text-lg">
+          <span className="hidden font-display text-base font-bold sm:inline sm:text-lg">
             Dartford Job Bot
           </span>
         </Link>
@@ -25,7 +26,7 @@ export function SiteHeader() {
             <Link
               key={link.to}
               to={link.to}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-2 py-1.5 text-sm font-medium transition-colors sm:px-3 ${
                 pathname === link.to
                   ? "bg-ink text-ink-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"

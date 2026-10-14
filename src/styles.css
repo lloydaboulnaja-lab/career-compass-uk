@@ -91,29 +91,30 @@
 }
 
 .dark {
-  --background: oklch(0.17 0.02 250);
-  --foreground: oklch(0.97 0.01 95);
-  --card: oklch(0.22 0.02 250);
-  --card-foreground: oklch(0.97 0.01 95);
-  --popover: oklch(0.22 0.02 250);
-  --popover-foreground: oklch(0.97 0.01 95);
-  --primary: oklch(0.72 0.12 210);
-  --primary-foreground: oklch(0.17 0.02 250);
-  --secondary: oklch(0.27 0.02 250);
-  --secondary-foreground: oklch(0.97 0.01 95);
-  --muted: oklch(0.27 0.02 250);
-  --muted-foreground: oklch(0.72 0.02 250);
-  --accent: oklch(0.86 0.19 116);
-  --accent-foreground: oklch(0.2 0.05 140);
+  color-scheme: dark;
+  --background: oklch(0.17 0.003 200);
+  --foreground: oklch(0.96 0.004 200);
+  --card: oklch(0.215 0.004 200);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.78 0.115 180);
+  --primary-foreground: oklch(0.19 0.025 180);
+  --secondary: oklch(0.27 0.005 200);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.72 0.008 200);
+  --accent: oklch(0.75 0.13 35);
+  --accent-foreground: oklch(0.19 0.025 35);
   --destructive: oklch(0.68 0.19 25);
   --destructive-foreground: oklch(0.17 0.02 250);
   --border: oklch(1 0 0 / 14%);
   --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.72 0.12 210);
-  --ink: oklch(0.12 0.02 250);
-  --ink-foreground: oklch(0.97 0.01 95);
-  --signal: oklch(0.86 0.19 116);
-  --signal-foreground: oklch(0.2 0.05 140);
+  --ring: var(--primary);
+  --ink: oklch(0.12 0.003 200);
+  --ink-foreground: var(--foreground);
+  --signal: var(--accent);
+  --signal-foreground: var(--accent-foreground);
   --sidebar: oklch(0.2 0.02 250);
   --sidebar-foreground: oklch(0.97 0.01 95);
   --sidebar-primary: oklch(0.72 0.12 210);
@@ -140,7 +141,7 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 
@@ -158,8 +159,5 @@
 }
 
 @utility grid-paper {
-  background-image:
-    linear-gradient(to right, var(--color-border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-image: none;
 }
