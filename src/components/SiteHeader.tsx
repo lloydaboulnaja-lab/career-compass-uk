@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bot } from "lucide-react";
+import { CvUpload } from "./CvUpload";
 
 const links = [
   { to: "/", label: "Job feed" },
@@ -21,6 +22,7 @@ export function SiteHeader() {
             Dartford Job Bot
           </span>
         </Link>
+        <div className="flex items-center gap-2">
         <nav className="flex items-center gap-1 rounded-lg bg-secondary p-1">
           {links.map((link) => (
             <Link
@@ -36,6 +38,8 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
+        <CvUpload />
+        </div>
       </div>
     </header>
   );

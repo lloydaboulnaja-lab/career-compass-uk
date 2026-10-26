@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { JobSkillMatch } from "./JobSkillMatch";
 import { Bookmark, BookmarkCheck, ArrowUpRight, MapPin, Sparkles, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,11 +9,13 @@ import type { JobLead } from "@/lib/types";
 interface Props {
   job: JobLead;
   saved: boolean;
+  cvText?: string;
   onToggleSave: (job: JobLead) => void;
   onTailor: (job: JobLead) => void;
 }
 
-export function JobCard({ job, saved, onToggleSave, onTailor }: Props) {
+export function JobCard({ job, saved, onToggleSave, onTailor, cvText = "" }: Props) {
+  const [advert, setAdvert] = useState("");
   return (
     <article className="surface-card group relative flex h-full flex-col gap-3 p-5 transition-shadow hover:shadow-lift">
       <div className="flex items-start justify-between gap-3">
@@ -70,13 +74,14 @@ export function JobCard({ job, saved, onToggleSave, onTailor }: Props) {
         </ul>
       )}
 
+      <JobSkillMatch job={job} cvText={cvText} onAdvertChange={setAdvert} />
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button asChild size="sm" className="flex-1">
           <a href={job.applyUrl} target="_blank" rel="noreferrer noopener">
             Apply <ArrowUpRight className="size-3.5" />
           </a>
         </Button>
-        <Button asChild size="sm" variant="outline" className="flex-1" onClick={() => onTailor(job)}>
+        <Button asChild size="sm" variant="outline" className="flex-1" onClick={() => onTailor(advert.trim() ? { ...job, summary: advert, requirements: [] } : job)}>
           <Link to="/cv">
             <Sparkles className="size-3.5" /> Tailor CV
           </Link>

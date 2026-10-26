@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { tailorCv } from "@/lib/bot.functions";
 import { cvStore, savedJobs, tailoredStore } from "@/lib/storage";
+import { subscribeStore } from "@/lib/storage";
+import { readCvFile } from "@/lib/cv-file";
+import { JobSkillMatch } from "@/components/JobSkillMatch";
 import { cvMarkdownToHtml, downloadCvDoc, slugify } from "@/lib/cv-doc";
 import type { JobLead, TailorResult } from "@/lib/types";
 
@@ -46,6 +49,7 @@ function CvStudio() {
   const [edited, setEdited] = useState("");
   const [saved, setSaved] = useState<JobLead[]>([]);
   const [isTailoring, setIsTailoring] = useState(false);
+  const [isReading, setIsReading] = useState(false);
 
   useEffect(() => {
     const storedCv = cvStore.get();
@@ -67,6 +71,7 @@ function CvStudio() {
       }
       window.localStorage.removeItem("kjb.selectedJob");
     }
+    return subscribeStore(() => { setCvText(cvStore.get()); setSaved(savedJobs.get()); });
   }, []);
 
   const run = useServerFn(tailorCv);
@@ -99,22 +104,15 @@ function CvStudio() {
   };
 
   const handleFile = async (file: File) => {
-    if (/\.(pdf|docx?|pages|rtf)$/i.test(file.name)) {
-      toast.error("PDF and Word files can't be read here — open it, select all, copy, paste below.");
-      return;
-    }
-    if (file.size > 400_000) {
-      toast.error("That file is a bit big — paste the text instead.");
-      return;
-    }
-    const text = await file.text();
-    if (text.includes("\u0000") || !/[a-zA-Z]{4}/.test(text)) {
-      toast.error("That file isn't plain text — paste your CV in the box instead.");
-      return;
-    }
-    setCvText(text);
-    cvStore.set(text);
-    toast.success("CV loaded");
+    setIsReading(true);
+    try {
+      const text = await readCvFile(file);
+      setCvText(text);
+      cvStore.set(text);
+      toast.success("CV loaded");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not read this CV.");
+    } finally { setIsReading(false); }
   };
 
 
@@ -145,8 +143,8 @@ function CvStudio() {
       <main className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-3xl font-bold sm:text-4xl">CV studio</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
-          Your CV stays on this device. Pick a job, and it gets rewritten for that advert — same
-          truth, sharper angle, no robotic waffle.
+          Your CV is saved on this device. Skill checks are local; choosing “Tailor my CV” sends
+          the CV and advert for an AI rewrite. Same truth, plain wording.
         </p>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -154,12 +152,13 @@ function CvStudio() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="cv">Your CV</Label>
-                <Button asChild size="sm" variant="outline">
+                <Button asChild size="sm" variant="outline" disabled={isReading}>
                   <label className="cursor-pointer">
-                    <Upload className="size-3.5" /> Upload .txt / .md
+                    <Upload className="size-3.5" /> {isReading ? "Reading…" : "Upload CV"}
                     <input
                       type="file"
-                      accept=".txt,.md,.markdown,text/plain"
+                      accept=".pdf,.docx,.txt,.md,.markdown"
+                      disabled={isReading}
                       className="sr-only"
                       onChange={(event) => {
                         const file = event.target.files?.[0];
@@ -172,13 +171,14 @@ function CvStudio() {
               <Textarea
                 id="cv"
                 value={cvText}
-                onChange={(event) => setCvText(event.target.value)}
+                onChange={(event) => { setCvText(event.target.value); cvStore.set(event.target.value); }}
+                maxLength={20000}
                 onBlur={() => cvStore.set(cvText)}
                 rows={14}
                 placeholder="Paste your whole CV here — name, contact, T Level, projects, any work or volunteering."
               />
               <p className="text-xs text-muted-foreground">
-                Got a PDF or Word CV? Open it, select all, copy, paste here once. Saved automatically.
+                PDF, DOCX or plain text. Saved on this device; no AI charge for skill checks.
               </p>
                {!cvReady && cvText.length > 0 && (
                  <p className="text-xs font-medium text-destructive">Paste at least 50 characters of your CV.</p>
@@ -190,7 +190,7 @@ function CvStudio() {
                 <Label>Use a saved job</Label>
                 <div className="flex flex-wrap gap-2">
                   {saved.slice(0, 8).map((job) => (
-                    <button
+                    <Button
                       key={job.id}
                       type="button"
                       onClick={() => {
@@ -203,7 +203,7 @@ function CvStudio() {
                       className="rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary"
                     >
                       {job.title} · {job.employer}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -244,7 +244,9 @@ function CvStudio() {
                )}
             </div>
 
-            <Button type="button" size="lg" className="w-full" disabled={isTailoring} onClick={startTailoring}>
+            {jobTitle.trim() && <JobSkillMatch job={{ title: jobTitle, summary: jobDescription, requirements: [] }} cvText={cvText} fullAdvert={jobDescription} expanded />}
+            <p className="text-xs text-muted-foreground">AI rewriting uses credits only when you press the button below. Review the result before applying.</p>
+            <Button type="button" size="lg" className="w-full" disabled={isTailoring || isReading} onClick={startTailoring}>
               {isTailoring ? (
                 <>
                   <Loader2 className="size-4 animate-spin" /> Rewriting…

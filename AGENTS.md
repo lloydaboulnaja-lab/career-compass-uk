@@ -10,3 +10,5 @@
 <!-- LOVABLE:END -->
 
 - Keep application tracking in the dedicated `/tracker` route using the shared browser stores, so every job category is accessible without running a search.
+- Keep skill matching deterministic and browser-local, using shared CV text; label title-derived skills and text evidence rather than claiming verified proficiency, so comparisons do not trigger AI calls.
+- Load PDF and DOCX readers dynamically in browser upload handlers, so file parsing stays on-device and outside SSR execution.
