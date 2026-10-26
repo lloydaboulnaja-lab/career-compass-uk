@@ -5,7 +5,8 @@ export async function readCvFile(file: File): Promise<string> {
     const pdfjs = await import('pdfjs-dist');
     const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-    const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+    const pdf = await task.promise;
     try {
       const pages: string[] = [];
       for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
@@ -14,7 +15,7 @@ export async function readCvFile(file: File): Promise<string> {
         pages.push(content.items.map(item => 'str' in item ? item.str + (item.hasEOL ? '\n' : ' ') : '').join(''));
       }
       text = pages.join('\n');
-    } finally { await pdf.destroy(); }
+    } finally { await task.destroy(); }
   } else if (/\.docx$/i.test(file.name)) {
     const mammoth = await import('mammoth');
     text = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
