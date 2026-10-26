@@ -5,7 +5,7 @@ import type { JobLead } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 
-export function JobSkillMatch({ job, cvText, fullAdvert, expanded = false }: { job: Pick<JobLead, 'title' | 'summary' | 'requirements'>; cvText: string; fullAdvert?: string; expanded?: boolean }) {
+export function JobSkillMatch({ job, cvText, fullAdvert, expanded = false, onAdvertChange }: { job: Pick<JobLead, 'title' | 'summary' | 'requirements'>; cvText: string; fullAdvert?: string; expanded?: boolean; onAdvertChange?: (advert: string) => void }) {
   const [advert, setAdvert] = useState('');
   const match = useMemo(() => matchCvToJob(cvText, job, fullAdvert || advert), [cvText, job.title, job.summary, job.requirements, fullAdvert, advert]);
   return <div className="space-y-2 border-t border-border pt-3">
@@ -22,7 +22,7 @@ export function JobSkillMatch({ job, cvText, fullAdvert, expanded = false }: { j
           {skill.evidence && <p className="break-words text-muted-foreground">CV evidence: “{skill.evidence.slice(0, 220)}”</p>}
           <p>{skill.met ? `Tailoring: move your real ${skill.name} example nearer the top; say what you did and the result. ${skill.requiredLevel === 'Experience requested' ? 'A mention alone does not establish the requested level.' : ''}` : skill.improvement}</p>
         </div>)}
-        {!fullAdvert && <div className="space-y-1"><label className="font-medium">Full advert for a closer match<Textarea aria-label={`Full advert for ${job.title}`} className="mt-1 text-xs" rows={4} value={advert} maxLength={8000} onChange={event => setAdvert(event.target.value)} placeholder="Paste the employer’s requirements" /></label></div>}
+        {fullAdvert === undefined && <div className="space-y-1"><label className="font-medium">Full advert for a closer match<Textarea aria-label={`Full advert for ${job.title}`} className="mt-1 text-xs" rows={4} value={advert} maxLength={8000} onChange={event => { setAdvert(event.target.value); onAdvertChange?.(event.target.value); }} placeholder="Paste the employer’s requirements" /></label></div>}
         <p className="text-muted-foreground">Keep only genuine skills. Use plain wording and one specific example, not inflated claims.</p>
       </div>
     </details>

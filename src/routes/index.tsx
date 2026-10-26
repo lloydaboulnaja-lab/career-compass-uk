@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { JobCard } from "@/components/JobCard";
 import { ApplicationTracker } from "@/components/ApplicationTracker";
+import { extractCvSkills } from "@/lib/skill-match";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { findJobs } from "@/lib/bot.functions";
 import {
   savedJobs,
+  cvStore,
   subscribeStore,
 } from "@/lib/storage";
 import { CATEGORY_LABEL, type JobCategory, type JobLead } from "@/lib/types";
@@ -50,10 +52,12 @@ function Feed() {
   const [ranAt, setRanAt] = useState<string | null>(null);
 
   const [saved, setSaved] = useState<JobLead[]>(EMPTY_JOBS);
+  const [cvText, setCvText] = useState("");
 
   useEffect(() => {
     const sync = () => {
       setSaved(savedJobs.get());
+      setCvText(cvStore.get());
     };
     sync();
     return subscribeStore(sync);
@@ -149,6 +153,13 @@ function Feed() {
       </div>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
+        <section className="mb-8 space-y-3 border-b border-border pb-6">
+          <h2 className="text-xl font-bold">Your skills & job fit</h2>
+          {cvText ? <>
+            <div className="flex flex-wrap gap-2">{extractCvSkills(cvText).map(skill => <Badge key={skill.name} variant="secondary">{skill.name} · {skill.level}</Badge>)}</div>
+            <p className="text-sm text-muted-foreground">Matches below compare available job text with your CV. Missing evidence is not necessarily a missing skill.</p>
+          </> : <p className="text-sm text-muted-foreground">No CV added yet. Add yours with the upload button at the top right.</p>}
+        </section>
         {ranAt && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>
@@ -186,6 +197,7 @@ function Feed() {
               <JobCard
                 key={job.id}
                 job={job}
+                cvText={cvText}
                 saved={savedIds.has(job.id)}
                 onToggleSave={(target) => {
                   const added = savedJobs.toggle(target);
