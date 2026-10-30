@@ -1,4 +1,5 @@
 import type { JobCategory, JobLead } from "./types";
+import { isEligibleJob, type JobSourceResult } from "./job-eligibility";
 
 /** London-area employers with public Greenhouse careers boards. */
 const BOARDS: { slug: string; name: string }[] = [
@@ -7,17 +8,14 @@ const BOARDS: { slug: string; name: string }[] = [
   { slug: "deliveroo", name: "Deliveroo" },
 ];
 
-const AREA = /london|dartford|kent|gravesend|bexley|erith|crayford|united kingdom|uk\b/i;
-const ENTRY =
-  /\b(intern|internship|graduate|junior|associate|trainee|entry|apprentice|support analyst|it support|service desk|help ?desk|tester|qa)\b/i;
-const EXCLUDE =
-  /\b(senior|lead|head|director|manager|principal|staff|architect|ii|iii|iv|phd)\b/i;
+const AREA = /london|dartford|\bkent\b|gravesend|bexley|erith|crayford|(?:remote.*(?:united kingdom|\buk\b)|(?:united kingdom|\buk\b).*remote)/i;
 
 interface GhJob {
   id: number;
   title: string;
   absolute_url: string;
   updated_at: string;
+  content?: string;
   location: { name: string };
 }
 
@@ -31,28 +29,29 @@ function posted(date: string): string {
 /** Company careers boards only carry tech/office roles, so only feed the tech tab. */
 export async function fetchGreenhouseJobs(
   category: JobCategory,
-): Promise<(JobLead & { postedAt: number })[]> {
-  if (category !== "tech") return [];
+): Promise<JobSourceResult<JobLead & { postedAt: number }>> {
+  if (category !== "tech") return { jobs: [], available: true };
   const batches = await Promise.all(
     BOARDS.map(async (board) => {
       try {
-        const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board.slug}/jobs`, {
+        const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board.slug}/jobs?content=true`, {
           signal: AbortSignal.timeout(6000),
         });
-        if (!res.ok) return [];
+        if (!res.ok) return { jobs: [], available: false };
         const data = (await res.json()) as { jobs?: GhJob[] };
-        return (data.jobs ?? []).map((job) => ({ job, board }));
+        if (!Array.isArray(data.jobs)) return { jobs: [], available: false };
+        return { jobs: data.jobs.map((job) => ({ job, board })), available: true };
       } catch {
-        return [];
+        return { jobs: [], available: false };
       }
     }),
   );
 
-  return batches
-    .flat()
+  const jobs = batches
+    .flatMap((batch) => batch.jobs)
     .filter(
       ({ job }) =>
-        AREA.test(job.location?.name ?? "") && ENTRY.test(job.title) && !EXCLUDE.test(job.title),
+        AREA.test(job.location?.name ?? "") && isEligibleJob(category, job.title, board.name, plainText(job.content ?? "")),
     )
     .map(({ job, board }) => ({
       postedAt: new Date(job.updated_at).getTime() || 0,
@@ -62,12 +61,17 @@ export async function fetchGreenhouseJobs(
       employer: board.name,
       location: job.location.name,
       payHint: "Pay not listed",
-      summary: `Open role on ${board.name}'s official careers page. Listings here are removed by the company as soon as they close.`,
+      summary: plainText(job.content ?? "").slice(0, 1200) || `Listed on ${board.name}'s official careers page. Check the full advert for eligibility.`,
       whyYou:
-        "Entry-level tech work that lines up with your Level 3 T Level — check the advert's right-to-work criteria.",
+        "An entry-level tech title — check the full advert for experience, qualifications and right-to-work requirements.",
       requirements: [],
       applyUrl: job.absolute_url,
       source: `${board.name} careers`,
       postedHint: posted(job.updated_at),
     }));
+  return { jobs, available: batches.some((batch) => batch.available) };
+}
+
+function plainText(html: string): string {
+  return html.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/<[^>]*>/g, " ").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
