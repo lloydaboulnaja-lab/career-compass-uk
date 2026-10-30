@@ -50,6 +50,7 @@ function Feed() {
   const [extraArea, setExtraArea] = useState("");
   const [jobs, setJobs] = useState<JobLead[]>([]);
   const [ranAt, setRanAt] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [saved, setSaved] = useState<JobLead[]>(EMPTY_JOBS);
   const [cvText, setCvText] = useState("");
@@ -70,7 +71,8 @@ function Feed() {
     onSuccess: (result) => {
       setJobs(result.jobs);
       setRanAt(result.searchedAt);
-      toast.success(`Found ${result.jobs.length} live openings`);
+      setNotice(result.notice);
+      if (result.jobs.length) toast.success(`Found ${result.jobs.length} live openings`);
     },
     onError: (error: Error) => toast.error(error.message || "The bot couldn't finish that run."),
   });
@@ -79,6 +81,7 @@ function Feed() {
   useEffect(() => {
     setJobs([]);
     setRanAt(null);
+    setNotice(null);
   }, [category]);
 
   const savedIds = new Set(saved.map((j) => j.id));
@@ -96,9 +99,9 @@ function Feed() {
             Jobs you can actually get, without a degree.
           </h1>
           <p className="mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Every run pulls openings posted this week, checks each advert is still live, and drops
-            the dead links before you see them. Then it rewrites your CV for whichever one you go
-            for.
+             Entry-level tech, local retail and tech apprenticeships, with CV matching and optional
+             tailoring. Known closed adverts and advertised course fees are filtered out;
+             check each employer’s full requirements before applying.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
@@ -169,6 +172,8 @@ function Feed() {
             <span>Checked {new Date(ranAt).toLocaleString("en-GB")}</span>
           </div>
         )}
+        {notice && <p role="status" className="mb-4 text-sm text-muted-foreground">{notice}</p>}
+        {mutation.isError && <p role="alert" className="mb-4 text-sm text-destructive">{mutation.error.message}</p>}
 
         {mutation.isPending && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -185,7 +190,7 @@ function Feed() {
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
               {ranAt
-                ? "Everything found was already closed. Try another category, or add a keyword like “Bluewater”."
+                 ? "No roles met the filters in the latest search. Try another category or check again later."
                 : "Pick a category above and hit “Run the bot” — it only keeps adverts that are still open."}
             </p>
           </div>
