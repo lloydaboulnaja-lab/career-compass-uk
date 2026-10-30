@@ -1,4 +1,5 @@
 import type { JobCategory, JobLead } from "./types";
+import { isEligibleJob, type JobSourceResult } from "./job-eligibility";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
@@ -25,7 +26,7 @@ interface ReedJob {
 interface SearchSpec {
   keywords: string[];
   proximity: number;
-  offset: "LastThreeDays" | "LastWeek";
+  offset: "LastThreeDays" | "LastWeek" | "LastMonth";
   partTime: boolean;
 }
 
@@ -118,42 +119,58 @@ function posted(dateCreated: string): string {
   return `Posted ${days} days ago`;
 }
 
-async function fetchReed(spec: SearchSpec, keywords: string): Promise<ReedJob[]> {
+async function fetchReed(spec: SearchSpec, keywords: string): Promise<JobSourceResult<ReedJob>> {
   const url = `https://www.reed.co.uk/jobs?keywords=${encodeURIComponent(keywords)}&location=Dartford&proximity=${spec.proximity}&datecreatedoffset=${spec.offset}${spec.partTime ? "&parttime=on" : ""}`;
-  try {
+  for (let attempt = 0; attempt < 2; attempt++) {
+   try {
     const response = await fetch(url, {
       headers: { "user-agent": UA, accept: "text/html" },
       redirect: "follow",
+      signal: AbortSignal.timeout(7000),
     });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        continue;
+      }
+      return { jobs: [], available: false };
+    }
     const html = await response.text();
     const match = /id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s.exec(html);
-    if (!match?.[1]) return [];
+    if (!match?.[1]) return { jobs: [], available: false };
     const data = JSON.parse(match[1]) as {
       props?: { pageProps?: { searchResults?: { jobs?: ReedJob[] } } };
     };
-    return data.props?.pageProps?.searchResults?.jobs ?? [];
+    const jobs = data.props?.pageProps?.searchResults?.jobs;
+    return { jobs: jobs ?? [], available: Array.isArray(jobs) };
   } catch (error) {
     console.error("reed fetch failed", keywords, error);
-    return [];
+    if (attempt === 1) return { jobs: [], available: false };
+   }
   }
+  return { jobs: [], available: false };
 }
 
 export async function fetchLiveJobs(
   category: JobCategory,
   extraArea: string,
-): Promise<JobLead[]> {
-  const spec = SEARCHES[category];
+  wider = false,
+): Promise<JobSourceResult<JobLead & { postedAt: number }>> {
+  const spec: SearchSpec = wider ? { ...SEARCHES[category], offset: "LastMonth" } : SEARCHES[category];
   const queries = extraArea.trim() ? [extraArea.trim(), ...spec.keywords] : spec.keywords;
 
-  const batches = await Promise.all(queries.map((keywords) => fetchReed(spec, keywords)));
+  const batches: JobSourceResult<ReedJob>[] = [];
+  // Limit concurrency: bursts increase upstream throttling and empty searches.
+  for (let index = 0; index < queries.length; index += 3) {
+    batches.push(...await Promise.all(queries.slice(index, index + 3).map((keywords) => fetchReed(spec, keywords))));
+  }
 
   const now = Date.now();
   const seen = new Set<number>();
   const leads: (JobLead & { postedAt: number })[] = [];
 
   for (const batch of batches) {
-    for (const { jobDetail: detail, url } of batch) {
+    for (const { jobDetail: detail, url } of batch.jobs) {
       if (!detail || seen.has(detail.jobId)) continue;
       if (detail.expiryDate && new Date(detail.expiryDate).getTime() < now) continue;
       if (EXCLUDE_TITLE.test(detail.jobTitle)) continue;
@@ -161,6 +178,7 @@ export async function fetchLiveJobs(
       if (!ALLOW_TITLE[category].test(detail.jobTitle)) continue;
       if (AGE_RESTRICTED_DESCRIPTION.test(detail.jobDescriptionSnippet ?? "")) continue;
       if (EXCLUDE_COURSE.test(`${detail.jobTitle} ${detail.jobDescriptionSnippet ?? ""}`)) continue;
+      if (!isEligibleJob(category, detail.jobTitle, detail.ouName ?? "", detail.jobDescriptionSnippet ?? "")) continue;
       seen.add(detail.jobId);
 
       leads.push({
@@ -174,7 +192,7 @@ export async function fetchLiveJobs(
         summary: (detail.jobDescriptionSnippet || "").replace(/\s+/g, " ").trim(),
         whyYou: WHY[category],
         requirements: detail.isPartTime ? ["Part-time hours available"] : [],
-        applyUrl: `https://www.reed.co.uk${url}`,
+        applyUrl: new URL(url, "https://www.reed.co.uk").href,
         source: "Reed",
         postedHint: posted(detail.dateCreated),
       });
@@ -183,19 +201,19 @@ export async function fetchLiveJobs(
 
   const ranked = leads.sort((a, b) => b.postedAt - a.postedAt).slice(0, 24);
 
-  const alive: JobLead[] = [];
+   const alive: (JobLead & { postedAt: number })[] = [];
   // Batched: Reed rate-limits (429) if we hit every advert at once.
   for (let index = 0; index < ranked.length; index += 8) {
     const slice = ranked.slice(index, index + 8);
     const results = await Promise.all(
-      slice.map(async ({ postedAt: _postedAt, ...lead }) =>
+      slice.map(async (lead) =>
         (await isDeadLink(lead.applyUrl)) ? null : lead,
       ),
     );
     for (const lead of results) if (lead) alive.push(lead);
   }
 
-  return alive;
+  return { jobs: alive, available: batches.some((batch) => batch.available) };
 }
 
 /** True only when Reed says the advert is gone — anything ambiguous stays in the feed. */

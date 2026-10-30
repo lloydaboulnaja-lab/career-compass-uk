@@ -50,7 +50,7 @@ export async function fetchGreenhouseJobs(
   const jobs = batches
     .flatMap((batch) => batch.jobs)
     .filter(
-      ({ job }) =>
+      ({ job, board }) =>
         AREA.test(job.location?.name ?? "") && isEligibleJob(category, job.title, board.name, plainText(job.content ?? "")),
     )
     .map(({ job, board }) => ({
