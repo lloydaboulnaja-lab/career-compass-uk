@@ -1,3 +1,4 @@
+/// <reference types="bun" />
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import type { JobLead } from "./types";
 
