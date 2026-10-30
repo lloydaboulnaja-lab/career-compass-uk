@@ -10,10 +10,12 @@ describe("job eligibility", () => {
     assert.equal(isEligibleJob("tech", "Junior Data Analyst", "Example", "SQL and Excel"), true);
     assert.equal(isEligibleJob("tech", "IT Administrator", "Example", "Windows support"), true);
     assert.equal(isEligibleJob("tech", "Helpdesk Administrator", "Example", "Facilities and maintenance enquiries"), false);
+    assert.equal(isEligibleJob("tech", "IT Technician", "Example", "Currently recruiting for an experienced IT Technician"), false);
   });
   it("excludes paid course advertisements", () => {
     assert.equal(isEligibleJob("tech", "Software Developer Trainee", "ITOL Recruit", "A pathway into tech"), false);
     assert.equal(isEligibleJob("tech", "Junior Software Developer", "Example", "Training course fee payable"), false);
+    assert.equal(isEligibleJob("tech", "Trainee IT Support Assistant", "Netcom Online Learning", "Join a government-funded IT Support course"), false);
   });
   it("excludes explicit degree requirements without banning optional degrees", () => {
     assert.equal(isEligibleJob("tech", "Associate Software Engineer - Intern", "Monzo", "Must have a bachelor's degree"), false);
